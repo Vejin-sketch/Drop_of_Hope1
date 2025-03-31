@@ -4,6 +4,7 @@ import 'package:dropofhope/services/api_service.dart'; // Import ApiService for 
 import 'package:dropofhope/screens/register_screen.dart'; // Import RegisterScreen for navigation
 import 'package:dropofhope/screens/home_screen.dart'; // Import HomeScreen for navigation
 import 'package:dropofhope/services/session_manager.dart'; // Import SessionManager for session handling
+import 'package:dropofhope/services/location_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,9 +43,28 @@ class _LoginScreenState extends State<LoginScreen> {
           if (response['user'] != null && response['user']['id'] != null) {
             // Save userId, username, and email to SharedPreferences
             final prefs = await SharedPreferences.getInstance(); // Declare prefs here
-            prefs.setInt('userId', response['user']['id']); // Store userId
-            prefs.setString('username', response['user']['name']); // Store username
-            prefs.setString('email', _emailController.text); // Store email
+            await SessionManager.saveUserData(
+              response['user']['name'],
+              _emailController.text,
+            );
+            await SessionManager.saveUserId(response['user']['id']);
+
+            // 🔥 Location logic
+            final position = await LocationService.getUserLocation();
+
+            if (position == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Please Enable Location Services and grant permission.")),
+              );
+              return; // ⛔ stop navigation to home
+            }
+
+            // ✅ Send to backend if position is available
+            await ApiService.saveUserLocation(
+              response['user']['id'],
+              position.latitude,
+              position.longitude,
+            );
 
             Navigator.pushReplacement(
               context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 import '../services/api_service.dart'; // Import ApiService for backend integration
+import 'package:dropofhope/services/session_manager.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key}); // No username and email parameters
@@ -44,7 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       // Fetch additional profile details from the backend
-      final userId = prefs.getInt('userId'); // Assuming userId is stored in SharedPreferences
+      final userId = await SessionManager.getUserId();
       if (userId == null) {
         throw Exception('User ID not found');
       }
@@ -71,8 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _updateProfileData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId'); // Assuming userId is stored in SharedPreferences
+      final userId = await SessionManager.getUserId();
       if (userId == null) {
         throw Exception('User ID not found');
       }

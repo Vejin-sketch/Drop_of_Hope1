@@ -7,7 +7,7 @@ class ApiService {
     if (kIsWeb) {
       return 'http://localhost:3000';
     } else {
-      return 'http://your-ip:3000'; // Replace with your server IP
+      return 'http://192.168.1.2:3000'; // Replace this if needed
     }
   }
 
@@ -15,7 +15,7 @@ class ApiService {
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('${baseUrl}/login'),
+        Uri.parse('${baseUrl}/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -24,10 +24,17 @@ class ApiService {
       );
 
       final data = json.decode(response.body);
-      return data; // Return the response without saving data
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        return {
+          'error': data['message'] ?? 'Invalid response from server'
+        };
+      }
     } catch (e) {
       return {'error': 'Connection failed'};
-    }
+      }
   }
 
   // 🔹 REGISTER USER
@@ -35,7 +42,7 @@ class ApiService {
       String name, String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('${baseUrl}/register'),
+        Uri.parse('${baseUrl}/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'name': name,
@@ -45,9 +52,26 @@ class ApiService {
       );
 
       final data = json.decode(response.body);
-      return data; // Return the response without saving data
+      return data;
     } catch (e) {
       return {'error': 'Connection failed'};
+    }
+  }
+
+  static Future<void> saveUserLocation(int userId, double lat, double lng) async {
+    final response = await http.put(
+      Uri.parse('${baseUrl}/profile'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'userId': userId,
+        'latitude': lat,
+        'longitude': lng,
+      }),
+    );
+
+    final data = json.decode(response.body);
+    if (data['success'] != true) {
+      throw Exception("Failed to update location");
     }
   }
 
@@ -55,11 +79,11 @@ class ApiService {
   static Future<List<dynamic>> fetchRecentRequests() async {
     try {
       final response = await http.get(
-        Uri.parse('${baseUrl}/recent-requests'),
+        Uri.parse('${baseUrl}/requests'),
       );
 
       final data = json.decode(response.body);
-      if (data['success']) {
+      if (data['requests'] != null) {
         return data['requests'];
       } else {
         throw Exception('Failed to fetch recent requests');
@@ -71,20 +95,8 @@ class ApiService {
 
   // 🔹 FETCH BLOOD STOCK LEVELS
   static Future<List<dynamic>> fetchBloodStock() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${baseUrl}/blood-stock'),
-      );
-
-      final data = json.decode(response.body);
-      if (data['success']) {
-        return data['stock'];
-      } else {
-        throw Exception('Failed to fetch blood stock');
-      }
-    } catch (e) {
-      throw Exception('Connection failed: $e');
-    }
+    // ❗ Note: This route does not exist in your current backend
+    throw UnimplementedError("This route is not yet implemented on the backend.");
   }
 
   // 🔹 FETCH PROFILE DETAILS
@@ -109,17 +121,16 @@ class ApiService {
   static Future<Map<String, dynamic>> updateProfile(
       Map<String, dynamic> profileData) async {
     try {
-      // Ensure optional fields are handled properly
       final updatedProfileData = {
-        'userId': profileData['userId'], // Required field
-        'lastDonationDate': profileData['lastDonationDate'], // Optional
-        'bloodGroup': profileData['bloodGroup'], // Optional
-        'gender': profileData['gender'], // Optional
-        'age': profileData['age'], // Optional
-        'weight': profileData['weight'], // Optional
-        'location': profileData['location'], // Optional
-        'hasTattoo': profileData['hasTattoo'], // Optional (default: false)
-        'isHivPositive': profileData['isHivPositive'], // Optional (default: false)
+        'userId': profileData['userId'],
+        'lastDonationDate': profileData['lastDonationDate'],
+        'bloodGroup': profileData['bloodGroup'],
+        'gender': profileData['gender'],
+        'age': profileData['age'],
+        'weight': profileData['weight'],
+        'location': profileData['location'],
+        'hasTattoo': profileData['hasTattoo'],
+        'isHivPositive': profileData['isHivPositive'],
       };
 
       final response = await http.put(
@@ -138,6 +149,6 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Connection failed: $e');
+        }
     }
-  }
 }

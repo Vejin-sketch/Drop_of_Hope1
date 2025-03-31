@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:dropofhope/screens/login_screen.dart'; // For logout functionality
-import 'package:dropofhope/screens/blood_stock_screen.dart'; // Import the BloodStockScreen
-import 'package:dropofhope/screens/donate_blood_screen.dart'; // Import the DonateBloodScreen
-import 'package:dropofhope/screens/need_blood_screen.dart'; // Import the NeedBloodScreen
-import 'package:dropofhope/screens/profile_screen.dart'; // Import the ProfileScreen
-import 'package:dropofhope/services/api_service.dart'; // Import the ApiService for backend integration
-import 'package:dropofhope/services/session_manager.dart'; // Import SessionManager for session handling
+import 'package:dropofhope/screens/login_screen.dart';
+import 'package:dropofhope/screens/blood_stock_screen.dart';
+import 'package:dropofhope/screens/donate_blood_screen.dart';
+import 'package:dropofhope/screens/need_blood_screen.dart';
+import 'package:dropofhope/screens/profile_screen.dart';
+import 'package:dropofhope/screens/find_donors_screen.dart';
+import 'package:dropofhope/screens/find_requests_screen.dart';
+import 'package:dropofhope/services/api_service.dart';
+import 'package:dropofhope/services/session_manager.dart';
+import 'package:dropofhope/screens/chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,14 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch data: $e')),
+        SnackBar(content: Text('Failed to fetch data: \$e')),
       );
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _onLogout(BuildContext context) async {
-    await SessionManager.clearSession(); // Clear session data
+    await SessionManager.clearSession();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -61,9 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // Handle notifications
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -72,75 +73,70 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.red,
-              ),
+              decoration: BoxDecoration(color: Colors.red),
               child: Text(
                 'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text('Profile'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                );
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()));
               },
             ),
             ListTile(
               leading: const Icon(Icons.bloodtype),
               title: const Text('Blood Stock'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BloodStockScreen(),
-                  ),
-                );
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const BloodStockScreen()));
               },
             ),
             ListTile(
               leading: const Icon(Icons.favorite),
               title: const Text('Donate Blood'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DonateBloodScreen(),
-                  ),
-                );
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DonateBloodScreen()));
               },
             ),
             ListTile(
               leading: const Icon(Icons.emergency),
               title: const Text('Need Blood'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NeedBloodScreen(),
-                  ),
-                );
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const NeedBloodScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.group),
+              title: const Text('Find Donors'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const FindDonorsScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.list_alt),
+              title: const Text('Find Requests'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const FindRequestsScreen()));
               },
             ),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
-              onTap: () {
-                _onLogout(context); // Handle logout
-              },
+              onTap: () => _onLogout(context),
             ),
           ],
         ),
@@ -150,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
           : SingleChildScrollView(
         child: Column(
           children: [
-            // Emergency Request Card
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -195,8 +190,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
-            // Quick Actions Grid
             Padding(
               padding: const EdgeInsets.all(16),
               child: GridView.count(
@@ -206,77 +199,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
                 children: [
-                  // Donate Blood
                   _buildActionCard(
                     'Donate Blood',
                     Icons.favorite,
                     Colors.red.shade400,
                         () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DonateBloodScreen(),
-                        ),
-                      );
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const DonateBloodScreen()));
                     },
                   ),
-                  // Find Donors
                   _buildActionCard(
-                    'Find Donors',
-                    Icons.people,
+                    'Need Blood',
+                    Icons.emergency,
                     Colors.blue.shade400,
                         () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NeedBloodScreen(),
-                        ),
-                      );
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const NeedBloodScreen()));
                     },
                   ),
-                  // Blood Banks
                   _buildActionCard(
-                    'Blood Banks',
-                    Icons.local_hospital,
+                    'Find Requests',
+                    Icons.list_alt,
                     Colors.green.shade400,
                         () {
-                      // Navigate to Blood Banks Screen (to be implemented)
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const FindRequestsScreen()));
                     },
                   ),
-                  // My Donations
                   _buildActionCard(
-                    'My Donations',
-                    Icons.history,
+                    'Find Donors',
+                    Icons.group,
                     Colors.purple.shade400,
                         () {
-                      // Navigate to My Donations Screen (to be implemented)
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Recent Requests List
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Recent Requests',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _recentRequests.length,
-                    itemBuilder: (context, index) {
-                      final request = _recentRequests[index];
-                      return _buildRequestCard(request);
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const FindDonorsScreen()));
                     },
                   ),
                 ],
@@ -285,6 +241,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => Container(
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ChatScreen(),
+            ),
+          );
+        },
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.chat, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
@@ -355,38 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestCard(Map<String, dynamic> request) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            request['blood_group'],
-            style: TextStyle(
-              color: Colors.red.shade700,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        title: Text(request['patient_name']),
-        subtitle: Text('${request['hospital_name']} • ${request['location']}'),
-        trailing: ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Help'),
         ),
       ),
     );

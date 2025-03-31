@@ -95,6 +95,34 @@ class _NeedBloodScreenState extends State<NeedBloodScreen> {
               ),
               const SizedBox(height: 20),
 
+              // Blood Group Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedBloodGroup,
+                decoration: const InputDecoration(
+                  labelText: 'Blood Group',
+                  prefixIcon: Icon(Icons.bloodtype),
+                  border: OutlineInputBorder(),
+                ),
+                items: _bloodGroups.map((String bloodGroup) {
+                  return DropdownMenuItem<String>(
+                    value: bloodGroup,
+                    child: Text(bloodGroup),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedBloodGroup = value;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select blood group';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
               // Contact Info Field
               TextFormField(
                 controller: _contactInfoController,
