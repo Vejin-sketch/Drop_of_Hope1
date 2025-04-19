@@ -13,7 +13,6 @@ class DonateBloodScreen extends StatefulWidget {
 class _DonateBloodScreenState extends State<DonateBloodScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _donorNameController = TextEditingController();
-  final TextEditingController _donationDateController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _lastDonationDateController = TextEditingController();
@@ -33,7 +32,6 @@ class _DonateBloodScreenState extends State<DonateBloodScreen> {
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     final username = await SessionManager.getUsername();
-    final email = await SessionManager.getEmail();
     final userId = prefs.getInt('userId');
 
     if (userId != null) {
@@ -45,13 +43,10 @@ class _DonateBloodScreenState extends State<DonateBloodScreen> {
           _bloodGroup = profile['blood_group'];
           _lastDonationDateController.text = profile['last_donation_date'] ?? '';
           _locationController.text = profile['location'] ?? '';
-          _contactController.text = email ?? '';
         });
       } catch (e) {
-        // Fallback to just session data
         setState(() {
           _donorNameController.text = username ?? '';
-          _contactController.text = email ?? '';
         });
       }
     }
@@ -80,7 +75,6 @@ class _DonateBloodScreenState extends State<DonateBloodScreen> {
       'userId': userId,
       'donorName': _donorNameController.text.trim(),
       'bloodGroup': _bloodGroup,
-      'donationDate': _donationDateController.text.trim(),
       'contactNumber': _contactController.text.trim(),
       'location': _locationController.text.trim(),
       'lastDonationDate': _lastDonationDateController.text.trim(),
@@ -94,11 +88,8 @@ class _DonateBloodScreenState extends State<DonateBloodScreen> {
       missingProfileFields['location'] = _locationController.text;
 
     try {
-      // 1. Save to blood_donations
-      // Replace with your POST /donations call
       print('Donation submitted: $donationData');
 
-      // 2. Update profile if needed
       if (missingProfileFields.isNotEmpty) {
         missingProfileFields['userId'] = userId;
         await ApiService.updateProfile(missingProfileFields);
@@ -156,40 +147,17 @@ class _DonateBloodScreenState extends State<DonateBloodScreen> {
               ),
               const SizedBox(height: 20),
               TextFormField(
-                controller: _donationDateController,
-                decoration: const InputDecoration(
-                  labelText: 'Date of Donation',
-                  border: OutlineInputBorder(),
-                ),
-                readOnly: true,
-                onTap: () async {
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    _donationDateController.text =
-                    "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                  }
-                },
-                validator: (value) =>
-                value == null || value.isEmpty ? 'Select donation date' : null,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
                 controller: _contactController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'Contact Number',
+                  labelText: 'Mobile Number',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter contact number';
                   }
-                  if (!RegExp(r'^[0-9]{10}\$').hasMatch(value)) {
+                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
                     return 'Enter a valid 10-digit number';
                   }
                   return null;

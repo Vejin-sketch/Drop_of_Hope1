@@ -49,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Blood Donation Assistant'),
+        title: Text('Chatbot'),
       ),
       body: Column(
         children: [
@@ -82,10 +82,15 @@ class _ChatScreenState extends State<ChatScreen> {
             Padding(
               padding: EdgeInsets.all(8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  CircularProgressIndicator(),
+                  Image.asset(
+                    'assets/chatbot.gif',
+                    width: 60, // Adjust width as desired
+                    height: 60, // Adjust height as desired
+                  ),
                   SizedBox(width: 8),
-                  Text('AI is thinking... (This may take a minute)'),
+                  Text("Bot is typing...", style: TextStyle(color: Colors.grey[700])),
                 ],
               ),
             ),

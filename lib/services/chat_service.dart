@@ -9,7 +9,7 @@ class ChatService {
       return 'http://localhost:5000';
     }
     // If running on mobile, use IP address
-    return 'http://192.168.1.2:5000';
+    return 'http://192.168.1.4:5000';
   }
 
   Future<String> sendMessage(String message) async {

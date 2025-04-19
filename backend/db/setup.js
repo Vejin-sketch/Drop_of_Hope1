@@ -57,6 +57,8 @@ db.serialize(() => {
     additional_notes TEXT,
     fulfilled INTEGER DEFAULT 0,
     fulfilled_by INTEGER,
+    latitude REAL,
+    longitude REAL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(fulfilled_by) REFERENCES blood_donations(id)

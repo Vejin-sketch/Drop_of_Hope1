@@ -5,7 +5,8 @@ exports.createRequest = async (req, res) => {
   const {
     userId, patientName, bloodGroup, unitsRequired,
     contactNumber, location, requiredDate,
-    hospitalName, hospitalAddress, isCritical, additionalNotes
+    hospitalName, hospitalAddress, isCritical, additionalNotes,
+    latitude, longitude
   } = req.body;
 
   if (!userId || !patientName || !bloodGroup || !contactNumber || !location || !requiredDate) {
@@ -17,13 +18,15 @@ exports.createRequest = async (req, res) => {
       `INSERT INTO blood_requests (
         user_id, patient_name, blood_group, units_required,
         contact_number, location, required_date,
-        hospital_name, hospital_address, is_critical, additional_notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        hospital_name, hospital_address, is_critical, additional_notes,
+        fulfilled, fulfilled_by, created_at, latitude, longitude
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, datetime('now'), ?, ?)`,
       [
         userId, patientName, bloodGroup, unitsRequired || 1,
         contactNumber, location, requiredDate,
         hospitalName || null, hospitalAddress || null,
-        isCritical ? 1 : 0, additionalNotes || null
+        isCritical ? 1 : 0, additionalNotes || null,
+        latitude, longitude
       ]
     );
 

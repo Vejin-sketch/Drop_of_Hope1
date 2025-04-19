@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) {
       return 'http://localhost:3000';
     } else {
-      return 'http://192.168.1.2:3000'; // Replace this if needed
+      return 'http://192.168.12.40:3000'; // Replace this if needed
     }
   }
 
@@ -151,4 +152,87 @@ class ApiService {
       throw Exception('Connection failed: $e');
         }
     }
+
+  static Future<List<dynamic>> getMatchesForDonor(int donorId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}/matches/requests?donorId=$donorId'),
+      );
+
+      final data = json.decode(response.body);
+
+      if (data['matches'] != null) {
+        return data['matches'];
+      } else {
+        throw Exception('No matches found');
+      }
+    } catch (e) {
+      throw Exception('Connection failed: \$e');
+    }
+  }
+
+  //Responses
+  static Future<int> logHelpResponse(int donorId, int requestId, Map<String, dynamic> request) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}/responses'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'donor_id': donorId,
+        'request_id': requestId,
+      }),
+    );
+
+    final data = json.decode(response.body);
+    final prefs = await SharedPreferences.getInstance();
+
+    if (response.statusCode == 201 && data['response_id'] != null) {
+      await prefs.setInt('activeResponseId', data['response_id']);
+      await prefs.setString('activeRequest', json.encode(request));
+      return data['response_id'];
+    } else if (response.statusCode == 409) {
+      throw Exception('already responded');
+    } else {
+      throw Exception(data['message'] ?? 'Failed to respond');
+    }
+  }
+
+  static Future<void> markResponseFulfilled(int responseId) async {
+    final response = await http.put(
+      Uri.parse('${baseUrl}/responses/$responseId/fulfill'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    final data = json.decode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['message'] ?? 'Failed to mark as fulfilled');
+    }
+  }
+
+  static Future<void> cancelResponse(int responseId, String reason) async {
+    final response = await http.put(
+      Uri.parse('${baseUrl}/responses/$responseId/cancel'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'cancel_reason': reason}),
+    );
+
+    final data = json.decode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['message'] ?? 'Failed to cancel response');
+    }
+  }
+
+  // 🔹 Add this to ApiService class
+  static Future<void> createBloodRequest(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}/requests'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(data),
+    );
+
+    final resData = json.decode(response.body);
+    if (response.statusCode != 201) {
+      throw Exception(resData['message'] ?? 'Request failed');
+    }
+  }
+
 }

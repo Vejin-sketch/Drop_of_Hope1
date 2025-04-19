@@ -6,9 +6,14 @@ import 'package:dropofhope/screens/need_blood_screen.dart';
 import 'package:dropofhope/screens/profile_screen.dart';
 import 'package:dropofhope/screens/find_donors_screen.dart';
 import 'package:dropofhope/screens/find_requests_screen.dart';
+import 'package:dropofhope/screens/my_requests_screen.dart';
 import 'package:dropofhope/services/api_service.dart';
 import 'package:dropofhope/services/session_manager.dart';
 import 'package:dropofhope/screens/chat_screen.dart';
+import 'package:dropofhope/screens/complete_profile_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dropofhope/screens/track_response_screeen.dart';
+import 'package:dropofhope/screens/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,30 +24,40 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  List<dynamic> _recentRequests = [];
-  List<dynamic> _bloodStock = [];
-  bool _isLoading = true;
+
+  final List<Widget> _screens = [
+    const HomeScreenBody(),
+    const MyRequestsScreen(),
+    const ProfileScreen(),
+    TrackResponseScreen(),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _checkProfileCompletion();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _checkProfileCompletion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    if (userId == null) return;
+
     try {
-      final requests = await ApiService.fetchRecentRequests();
-      final stock = await ApiService.fetchBloodStock();
-      setState(() {
-        _recentRequests = requests;
-        _bloodStock = stock;
-        _isLoading = false;
-      });
+      final profile = await ApiService.fetchProfile(userId);
+      final isMissing = profile['bloodGroup'] == null ||
+          profile['latitude'] == null ||
+          profile['longitude'] == null;
+      if (isMissing && mounted) {
+        Future.delayed(Duration.zero, () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CompleteProfileScreen()),
+          );
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch data: \$e')),
-      );
-      setState(() => _isLoading = false);
+      print("Profile check failed: \$e");
     }
   }
 
@@ -59,12 +74,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drop of Hope'),
+        title: const Text('Welcome to Drop of Hope'),
         backgroundColor: Colors.red,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -75,7 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.red),
               child: Text(
-                'Menu',
+                'DropOfHope',
+
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
@@ -141,106 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Emergency Blood Required',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildInfoChip(Icons.water_drop, 'A+'),
-                      const SizedBox(width: 8),
-                      _buildInfoChip(Icons.location_on, 'City Hospital'),
-                      const SizedBox(width: 8),
-                      _buildInfoChip(Icons.access_time, 'Urgent'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Respond Now'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                children: [
-                  _buildActionCard(
-                    'Donate Blood',
-                    Icons.favorite,
-                    Colors.red.shade400,
-                        () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const DonateBloodScreen()));
-                    },
-                  ),
-                  _buildActionCard(
-                    'Need Blood',
-                    Icons.emergency,
-                    Colors.blue.shade400,
-                        () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const NeedBloodScreen()));
-                    },
-                  ),
-                  _buildActionCard(
-                    'Find Requests',
-                    Icons.list_alt,
-                    Colors.green.shade400,
-                        () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const FindRequestsScreen()));
-                    },
-                  ),
-                  _buildActionCard(
-                    'Find Donors',
-                    Icons.group,
-                    Colors.purple.shade400,
-                        () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const FindDonorsScreen()));
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: _screens[_selectedIndex],
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
@@ -273,12 +195,114 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: Icon(Icons.assignment),
+            label: 'My Requests',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.track_changes),
+            label: 'Track',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeScreenBody extends StatelessWidget {
+  const HomeScreenBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Emergency Blood Required',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildInfoChip(Icons.water_drop, 'A+'),
+                    const SizedBox(width: 8),
+                    _buildInfoChip(Icons.location_on, 'City Hospital'),
+                    const SizedBox(width: 8),
+                    _buildInfoChip(Icons.access_time, 'Urgent'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Respond Now'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              children: [
+                _buildActionCard(
+                  context,
+                  'Donate Blood',
+                  Icons.favorite,
+                  Colors.red.shade400,
+                  const DonateBloodScreen(),
+                ),
+                _buildActionCard(
+                  context,
+                  'Need Blood',
+                  Icons.emergency,
+                  Colors.blue.shade400,
+                  const NeedBloodScreen(),
+                ),
+                _buildActionCard(
+                  context,
+                  'Find Requests',
+                  Icons.list_alt,
+                  Colors.green.shade400,
+                  const FindRequestsScreen(),
+                ),
+                _buildActionCard(
+                  context,
+                  'Find Donors',
+                  Icons.group,
+                  Colors.purple.shade400,
+                  const FindDonorsScreen(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -304,14 +328,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionCard(
-      String title,
-      IconData icon,
-      Color color,
-      VoidCallback onTap,
-      ) {
+  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, Widget screen) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+      },
       child: Container(
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),

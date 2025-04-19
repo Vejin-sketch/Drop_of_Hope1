@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dropofhope/services/api_service.dart';
 
 class NeedBloodScreen extends StatefulWidget {
   const NeedBloodScreen({super.key});
@@ -12,279 +17,229 @@ class _NeedBloodScreenState extends State<NeedBloodScreen> {
   final TextEditingController _requesterNameController = TextEditingController();
   final TextEditingController _contactInfoController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _hospitalController = TextEditingController();
   final TextEditingController _requiredDateController = TextEditingController();
   final TextEditingController _additionalNotesController = TextEditingController();
+
+  double? _latitude;
+  double? _longitude;
   String? _selectedBloodGroup;
   String? _selectedUnitsRequired;
-  bool _isCritical = false; // Default urgency level
-  bool _agreeToTerms = false; // Checkbox state
+  bool _isCritical = false;
+  bool _agreeToTerms = false;
 
-  // List of blood groups
-  final List<String> _bloodGroups = [
-    'A+',
-    'A-',
-    'B+',
-    'B-',
-    'O+',
-    'O-',
-    'AB+',
-    'AB-',
-  ];
-
-  // List of units required (1-9)
+  final List<String> _bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
   final List<String> _unitsRequired = List.generate(9, (index) => (index + 1).toString());
+  final String _locationIqKey = 'pk.daaa44b9e63dad7baae605abb7b32d56';
 
-  // Validation for Requester Name
-  String? _validateRequesterName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter the requester name';
+  Future<void> _fetchCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location services are disabled.')),
+      );
+      return;
     }
-    // Check for numbers
-    if (value.contains(RegExp(r'[0-9]'))) {
-      return 'Numbers are not allowed in the name';
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
-    // Check for special characters
-    if (value.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'))) {
-      return 'Special characters are not allowed in the name';
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permissions are permanently denied.')),
+      );
+      return;
     }
-    // Check if the first letter of each word is capitalized
-    if (!value.split(' ').every((word) => word[0] == word[0].toUpperCase())) {
-      return 'First letter of each word should be capitalized';
-    }
-    return null;
+
+    final Position position = await Geolocator.getCurrentPosition();
+    _latitude = position.latitude;
+    _longitude = position.longitude;
+
+    await _getAddressFromCoordinates(_latitude!, _longitude!);
   }
 
-  // Validation for Contact Info
-  String? _validateContactInfo(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter contact info';
+  Future<void> _getAddressFromCoordinates(double lat, double lon) async {
+    final url =
+        'https://us1.locationiq.com/v1/reverse.php?key=$_locationIqKey&lat=$lat&lon=$lon&format=json';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        _locationController.text = data['display_name'];
+      });
     }
-    // Check if exactly 10 digits
-    if (value.length != 10) {
-      return 'Contact info must be exactly 10 digits';
+  }
+
+  Future<void> _submitRequest() async {
+    if (!_formKey.currentState!.validate() || !_agreeToTerms) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('userId');
+
+      if (userId == null || _latitude == null || _longitude == null) {
+        throw Exception("Missing user ID or location.");
+      }
+
+      final data = {
+        'userId': userId,
+        'patientName': _requesterNameController.text.trim(),
+        'bloodGroup': _selectedBloodGroup,
+        'unitsRequired': int.parse(_selectedUnitsRequired ?? '1'),
+        'contactNumber': _contactInfoController.text.trim(),
+        'location': _locationController.text.trim(),
+        'requiredDate': _requiredDateController.text.trim(),
+        'hospitalName': _hospitalController.text.trim(),
+        'hospitalAddress': '',
+        'isCritical': _isCritical,
+        'additionalNotes': _additionalNotesController.text.trim(),
+        'latitude': _latitude,
+        'longitude': _longitude
+      };
+
+      await ApiService.createBloodRequest(data);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Request submitted successfully!')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
-    // Check if only numbers are entered
-    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-      return 'Only numbers are allowed';
-    }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Need Blood'),
-        backgroundColor: Colors.red,
-      ),
+      appBar: AppBar(title: const Text('Need Blood'), backgroundColor: Colors.red),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              // Requester Name Field
               TextFormField(
                 controller: _requesterNameController,
                 decoration: const InputDecoration(
                   labelText: 'Requester Name',
-                  prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
-                validator: _validateRequesterName,
+                validator: (value) => value == null || value.isEmpty ? 'Enter name' : null,
               ),
               const SizedBox(height: 20),
-
-              // Blood Group Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedBloodGroup,
                 decoration: const InputDecoration(
                   labelText: 'Blood Group',
-                  prefixIcon: Icon(Icons.bloodtype),
                   border: OutlineInputBorder(),
                 ),
-                items: _bloodGroups.map((String bloodGroup) {
-                  return DropdownMenuItem<String>(
-                    value: bloodGroup,
-                    child: Text(bloodGroup),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedBloodGroup = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select blood group';
-                  }
-                  return null;
-                },
+                items: _bloodGroups.map((bg) => DropdownMenuItem(value: bg, child: Text(bg))).toList(),
+                onChanged: (val) => setState(() => _selectedBloodGroup = val),
+                validator: (val) => val == null ? 'Select blood group' : null,
               ),
               const SizedBox(height: 20),
-
-              // Contact Info Field
               TextFormField(
                 controller: _contactInfoController,
+                keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'Contact Info',
-                  prefixIcon: Icon(Icons.phone),
+                  labelText: 'Contact Number',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.phone,
-                validator: _validateContactInfo,
+                validator: (val) => val == null || val.isEmpty || !RegExp(r'^[0-9]{10}$').hasMatch(val)
+                    ? 'Enter valid 10-digit number'
+                    : null,
               ),
               const SizedBox(height: 20),
-
-              // Location Field
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  prefixIcon: Icon(Icons.location_on),
-                  border: OutlineInputBorder(),
+                readOnly: false,
+                decoration: InputDecoration(
+                  labelText: 'Location (tap GPS icon to autofill)',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.location_on),
+                    onPressed: _fetchCurrentLocation,
+                  ),
+                  border: const OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the location';
-                  }
-                  return null;
-                },
+                validator: (val) => val == null || val.isEmpty ? 'Enter or fetch your location' : null,
               ),
               const SizedBox(height: 20),
-
-              // Required Date Field
               TextFormField(
-                controller: _requiredDateController,
+                controller: _hospitalController,
                 decoration: const InputDecoration(
-                  labelText: 'Required Date',
-                  prefixIcon: Icon(Icons.calendar_today),
+                  labelText: 'Hospital / Blood Bank Name',
                   border: OutlineInputBorder(),
                 ),
+                validator: (val) => val == null || val.isEmpty ? 'Enter hospital name' : null,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _requiredDateController,
                 readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Required Date',
+                  border: OutlineInputBorder(),
+                ),
                 onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
+                  final picked = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now(),
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2100),
                   );
-                  if (pickedDate != null) {
-                    setState(() {
-                      _requiredDateController.text =
-                      "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                    });
+                  if (picked != null) {
+                    _requiredDateController.text =
+                    "${picked.day}/${picked.month}/${picked.year}";
                   }
                 },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the required date';
-                  }
-                  return null;
-                },
+                validator: (val) => val == null || val.isEmpty ? 'Select date' : null,
               ),
               const SizedBox(height: 20),
-
-              // Units Required Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedUnitsRequired,
                 decoration: const InputDecoration(
                   labelText: 'Units Required',
-                  prefixIcon: Icon(Icons.bloodtype),
                   border: OutlineInputBorder(),
                 ),
-                items: _unitsRequired.map((String unit) {
-                  return DropdownMenuItem<String>(
-                    value: unit,
-                    child: Text(unit),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedUnitsRequired = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the units required';
-                  }
-                  return null;
-                },
+                items: _unitsRequired.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                onChanged: (val) => setState(() => _selectedUnitsRequired = val),
+                validator: (val) => val == null ? 'Select units' : null,
               ),
               const SizedBox(height: 20),
-
-              // Urgency Level Toggle
               SwitchListTile(
                 title: const Text('Critical Urgency'),
-                subtitle: const Text('Toggle if the case is critical'),
                 value: _isCritical,
-                onChanged: (value) {
-                  setState(() {
-                    _isCritical = value;
-                  });
-                },
+                onChanged: (val) => setState(() => _isCritical = val),
               ),
               const SizedBox(height: 20),
-
-              // Additional Notes Field
               TextFormField(
                 controller: _additionalNotesController,
                 decoration: const InputDecoration(
                   labelText: 'Additional Notes',
-                  prefixIcon: Icon(Icons.note),
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please provide additional notes';
-                  }
-                  return null;
-                },
+                validator: (val) => val == null || val.isEmpty ? 'Add notes' : null,
               ),
               const SizedBox(height: 20),
-
-              // Terms and Privacy Policy Checkbox
               CheckboxListTile(
-                title: const Text('I have read and agreed to the terms and privacy policy'),
+                title: const Text('I agree to the terms and privacy policy'),
                 value: _agreeToTerms,
-                onChanged: (value) {
-                  setState(() {
-                    _agreeToTerms = value ?? false;
-                  });
-                },
-                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (val) => setState(() => _agreeToTerms = val ?? false),
               ),
               const SizedBox(height: 20),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate() && _agreeToTerms) {
-                      // Form is valid and terms are agreed, proceed with submission
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Request submitted successfully!'),
-                        ),
-                      );
-                      // You can add logic here to send data to a server or database
-                    } else if (!_agreeToTerms) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please agree to the terms and privacy policy'),
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Submit Request'),
+              ElevatedButton(
+                onPressed: _submitRequest,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
+                child: const Text('Submit Request'),
               ),
             ],
           ),
