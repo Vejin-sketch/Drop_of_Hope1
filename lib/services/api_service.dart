@@ -8,7 +8,7 @@ class ApiService {
     if (kIsWeb) {
       return 'http://localhost:3000';
     } else {
-      return 'http://192.168.12.40:3000'; // Replace this if needed
+      return 'http://192.168.124.154:3000'; // Replace this if needed
     }
   }
 

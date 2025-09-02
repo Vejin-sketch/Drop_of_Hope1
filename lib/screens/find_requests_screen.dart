@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dropofhope/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dropofhope/screens/track_response_screeen.dart';
+import 'package:share_plus/share_plus.dart';
 
 class FindRequestsScreen extends StatefulWidget {
   const FindRequestsScreen({super.key});
@@ -43,6 +44,38 @@ class _FindRequestsScreenState extends State<FindRequestsScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  // ✅ Share function
+  void shareBloodRequest(Map<String, dynamic> request) {
+    final String patientName = request['patient_name'];
+    final String units = request['units_required'].toString();
+    final String bloodGroup = request['blood_group'];
+    final String hospital = request['hospital_name'] ?? 'Unknown Hospital';
+    final String notes = request['additional_notes'] ?? '';
+    final String location = request['location'] ?? 'Location not specified';
+    final String distance = "${request['distance'].toStringAsFixed(1)} km";
+    final double lat = request['latitude'];
+    final double lon = request['longitude'];
+
+    final String mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lon';
+
+    final String message = '''
+🩸 Urgent Blood Request 🩸
+
+$patientName needs $units unit(s) of $bloodGroup blood.
+
+🏥 Hospital: $hospital
+📍 Location: $location
+📋 Notes: $notes
+📏 Distance: $distance
+🌐 Map: $mapsUrl
+
+Kindly help or share this message. 🙏
+(Drop of Hope App)
+''';
+
+    Share.share(message);
   }
 
   @override
@@ -138,59 +171,68 @@ class _FindRequestsScreenState extends State<FindRequestsScreen> {
                             'Distance: ${request['distance'].toStringAsFixed(1)} km',
                       ),
                       isThreeLine: true,
-                      trailing: ElevatedButton(
-                        onPressed: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text("Confirm Help"),
-                              content: const Text("Do you want to offer help for this request?"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text("Cancel"),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text("Yes, Help"),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirmed == true) {
-                            try {
-                              final prefs = await SharedPreferences.getInstance();
-                              final donorId = prefs.getInt('userId');
-                              final responseId = await ApiService.logHelpResponse(donorId!, request['id'], request);
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const TrackResponseScreen(),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.share, color: Colors.grey),
+                            onPressed: () => shareBloodRequest(request),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text("Confirm Help"),
+                                  content: const Text("Do you want to offer help for this request?"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text("Cancel"),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text("Yes, Help"),
+                                    ),
+                                  ],
                                 ),
                               );
-                            } catch (e) {
-                              if (e.toString().contains("already responded")) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => TrackResponseScreen(),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Error: $e")),
-                                );
+
+                              if (confirmed == true) {
+                                try {
+                                  final prefs = await SharedPreferences.getInstance();
+                                  final donorId = prefs.getInt('userId');
+                                  final responseId = await ApiService.logHelpResponse(donorId!, request['id'], request);
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const TrackResponseScreen(),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (e.toString().contains("already responded")) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TrackResponseScreen(),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("Error: $e")),
+                                    );
+                                  }
+                                }
                               }
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Help'),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Help'),
+                          ),
+                        ],
                       ),
                     ),
                   );

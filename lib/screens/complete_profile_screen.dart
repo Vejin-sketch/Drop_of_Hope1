@@ -20,7 +20,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   double? _latitude;
   double? _longitude;
   bool _isSubmitting = false;
-  final String _locationIqKey = 'pk.daaa44b9e63dad7baae605abb7b32d56';
+  final String _locationIqKey = 'Enter key';
 
   Future<void> _getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();

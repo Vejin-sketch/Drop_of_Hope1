@@ -30,7 +30,7 @@ class _NeedBloodScreenState extends State<NeedBloodScreen> {
 
   final List<String> _bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
   final List<String> _unitsRequired = List.generate(9, (index) => (index + 1).toString());
-  final String _locationIqKey = 'pk.daaa44b9e63dad7baae605abb7b32d56';
+  final String _locationIqKey = 'Enter key Clue =';
 
   Future<void> _fetchCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
