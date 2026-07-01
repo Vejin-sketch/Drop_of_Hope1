@@ -1,16 +1,3 @@
-# blood_donation_app
+Drop of Hope is an AI-integrated mobile application developed to simplify and improve the blood donation process by connecting blood donors, recipients, hospitals, and blood banks through a single platform. The application enables users to register, donate blood, request blood during emergencies, locate compatible donors, and track both blood requests and donor responses in real time. It aims to reduce the delay in finding suitable blood donors while providing a seamless, secure, and user-friendly experience.
 
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+To enhance the efficiency of the system, Drop of Hope incorporates intelligent AI modules, including donor eligibility verification, location-based donor matching, an AI chatbot powered by Mistral 7B Instruct for user assistance, and a demand forecasting prototype developed using Python Prophet to predict future blood requirements. By combining modern mobile technologies with artificial intelligence, the application offers a smarter, faster, and more transparent approach to blood donation management while encouraging voluntary blood donation and strengthening community healthcare support.
