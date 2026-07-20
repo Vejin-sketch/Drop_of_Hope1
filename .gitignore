@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Backend secrets and local data - must never be committed
+backend/.env
+backend/database.db
+backend/database.sqlite
+backend/db/database.db
+backend/node_modules/
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Reference material from the July 2026 folder consolidation - not source, not versioned
+docs/legacy-notes/

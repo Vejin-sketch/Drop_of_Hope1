@@ -2,14 +2,24 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'session_manager.dart';
 
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) {
       return 'http://localhost:3000';
     } else {
-      return 'http://192.168.124.154:3000'; // Replace this if needed
+      return 'http://xxx.xxx.xxx.xxx:3000'; // Replace this if needed
     }
+  }
+
+  // 🔹 Headers for requests that require a logged-in user
+  static Future<Map<String, String>> _authHeaders() async {
+    final token = await SessionManager.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
   }
 
   // 🔹 LOGIN USER
@@ -27,6 +37,9 @@ class ApiService {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        if (data['token'] != null) {
+          await SessionManager.saveToken(data['token']);
+        }
         return data;
       } else {
         return {
@@ -53,6 +66,9 @@ class ApiService {
       );
 
       final data = json.decode(response.body);
+      if (data['token'] != null) {
+        await SessionManager.saveToken(data['token']);
+      }
       return data;
     } catch (e) {
       return {'error': 'Connection failed'};
@@ -62,9 +78,8 @@ class ApiService {
   static Future<void> saveUserLocation(int userId, double lat, double lng) async {
     final response = await http.put(
       Uri.parse('${baseUrl}/profile'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: json.encode({
-        'userId': userId,
         'latitude': lat,
         'longitude': lng,
       }),
@@ -81,6 +96,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('${baseUrl}/requests'),
+        headers: await _authHeaders(),
       );
 
       final data = json.decode(response.body);
@@ -104,7 +120,8 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchProfile(int userId) async {
     try {
       final response = await http.get(
-        Uri.parse('${baseUrl}/profile?userId=$userId'),
+        Uri.parse('${baseUrl}/profile'),
+        headers: await _authHeaders(),
       );
 
       final data = json.decode(response.body);
@@ -136,9 +153,7 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('${baseUrl}/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await _authHeaders(),
         body: json.encode(updatedProfileData),
       );
 
@@ -156,7 +171,8 @@ class ApiService {
   static Future<List<dynamic>> getMatchesForDonor(int donorId) async {
     try {
       final response = await http.get(
-        Uri.parse('${baseUrl}/matches/requests?donorId=$donorId'),
+        Uri.parse('${baseUrl}/matches/requests'),
+        headers: await _authHeaders(),
       );
 
       final data = json.decode(response.body);
@@ -175,9 +191,8 @@ class ApiService {
   static Future<int> logHelpResponse(int donorId, int requestId, Map<String, dynamic> request) async {
     final response = await http.post(
       Uri.parse('${baseUrl}/responses'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: json.encode({
-        'donor_id': donorId,
         'request_id': requestId,
       }),
     );
@@ -199,7 +214,7 @@ class ApiService {
   static Future<void> markResponseFulfilled(int responseId) async {
     final response = await http.put(
       Uri.parse('${baseUrl}/responses/$responseId/fulfill'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
     );
 
     final data = json.decode(response.body);
@@ -211,7 +226,7 @@ class ApiService {
   static Future<void> cancelResponse(int responseId, String reason) async {
     final response = await http.put(
       Uri.parse('${baseUrl}/responses/$responseId/cancel'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: json.encode({'cancel_reason': reason}),
     );
 
@@ -225,7 +240,7 @@ class ApiService {
   static Future<void> createBloodRequest(Map<String, dynamic> data) async {
     final response = await http.post(
       Uri.parse('${baseUrl}/requests'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: json.encode(data),
     );
 

@@ -45,11 +45,7 @@ exports.getMatchesForRequest = async (req, res) => {
 };
 
 exports.getMatchesForDonor = async (req, res) => {
-  const donorId = req.query.donorId;
-
-  if (!donorId) {
-    return res.status(400).json({ message: "Missing donorId in query params" });
-  }
+  const donorId = req.userId;
 
   try {
     const donor = await db.getAsync("SELECT * FROM users WHERE id = ?", [donorId]);

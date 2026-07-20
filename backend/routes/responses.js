@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const responsesController = require("../controllers/responsesController");
+const requireAuth = require("../middleware/auth");
+
+router.use(requireAuth);
 
 // Donor offers to help
 router.post("/", responsesController.createResponse);

@@ -1,5 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set. Add it to backend/.env before starting the server.");
+}
 
 const app = express();
 const port = 3000;
@@ -23,15 +28,6 @@ app.use("/responses", require("./routes/responses"));
 
 app.get("/", (req, res) => {
   res.send("Blood Donation App API is running...");
-});
-app.get("/dev/users", async (req, res) => {
-  const db = require("./db/db");
-  try {
-    const rows = await db.allAsync("SELECT id, name, latitude, longitude FROM users");
-    res.json({ users: rows });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 app.listen(port, () => {

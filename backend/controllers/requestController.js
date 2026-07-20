@@ -2,14 +2,15 @@ const db = require("../db/db");
 const compatibility = require("../utils/bloodCompatibility");
 
 exports.createRequest = async (req, res) => {
+  const userId = req.userId;
   const {
-    userId, patientName, bloodGroup, unitsRequired,
+    patientName, bloodGroup, unitsRequired,
     contactNumber, location, requiredDate,
     hospitalName, hospitalAddress, isCritical, additionalNotes,
     latitude, longitude
   } = req.body;
 
-  if (!userId || !patientName || !bloodGroup || !contactNumber || !location || !requiredDate) {
+  if (!patientName || !bloodGroup || !contactNumber || !location || !requiredDate) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 

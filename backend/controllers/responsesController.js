@@ -1,10 +1,11 @@
 const db = require("../db/db");
 
 exports.createResponse = async (req, res) => {
-  const { donor_id, request_id } = req.body;
+  const donor_id = req.userId;
+  const { request_id } = req.body;
 
-  if (!donor_id || !request_id) {
-    return res.status(400).json({ message: "Missing donor_id or request_id" });
+  if (!request_id) {
+    return res.status(400).json({ message: "Missing request_id" });
   }
 
   try {
@@ -92,10 +93,11 @@ exports.cancelResponse = async (req, res) => {
 };
 
 exports.getResponseByDonor = async (req, res) => {
-  const { donorId, requestId } = req.query;
+  const donorId = req.userId;
+  const { requestId } = req.query;
 
-  if (!donorId || !requestId) {
-    return res.status(400).json({ message: "Missing donorId or requestId" });
+  if (!requestId) {
+    return res.status(400).json({ message: "Missing requestId" });
   }
 
   try {

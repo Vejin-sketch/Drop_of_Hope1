@@ -1,14 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/db");
+const requireAuth = require("../middleware/auth");
+
+router.use(requireAuth);
 
 // ✅ GET PROFILE
 router.get("/", async (req, res) => {
-  const userId = req.query.userId;
-
-  if (!userId) {
-    return res.status(400).json({ success: false, message: "User ID is required" });
-  }
+  const userId = req.userId;
 
   try {
     const profile = await db.getAsync(
@@ -31,10 +30,7 @@ router.get("/", async (req, res) => {
 
 // ✅ PUT PROFILE
 router.put("/", async (req, res) => {
-  const userId = req.body.userId;
-  if (!userId) {
-    return res.status(400).json({ success: false, message: "User ID is required" });
-  }
+  const userId = req.userId;
 
   const allowedFields = {
     lastDonationDate: "last_donation_date",
