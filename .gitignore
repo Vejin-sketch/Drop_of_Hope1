@@ -44,6 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Node dependencies - never commit node_modules
+/node_modules/
+
 # Backend secrets and local data - must never be committed
 backend/.env
 backend/database.db
